@@ -1,0 +1,314 @@
+---
+title: "tarea_1"
+output:
+  pdf_document: default
+  html_document: default
+date: "2024-05-12"
+---
+
+# Se cargan librerias
+```{r}
+install.packages(tidyverse)
+install.packages("dplyr")
+install.packages("ggpubr")
+install.packages("ggplot2")
+install.packages("corrplot")
+install.packages("plotly")
+library(tidyverse)
+library("ggpubr")
+library("ggplot2")
+library("corrplot")
+library("dplyr")
+library("plotly")
+
+```
+
+# Se setea el lugar de trabajo
+
+```{r}
+setwd("D:/Dimplomado2024/tarea_1_blas_barraza/Desarrollo")
+```
+
+#Se importa la dase de batos
+
+```{r}
+terremotos <- read.csv("earthquakes_2023_global.csv")
+
+```
+
+# Metadata de la base de datos
+
+### 1. Time: Marca de tiempo del evento del terremoto.
+
+### 2. Latitude: Coordenada geográfica que especifica la posición norte-sur.
+
+### 3. Longitude: Coordenada geográfica que especifica la posición este-oeste.
+
+### 4. Depth: Profundidad del terremoto en kilómetros.
+
+### 5. Mag: Magnitud del terremoto.
+
+### 6. MagType: Tipo de medida de magnitud.
+
+### 7. Nst: Número de estaciones sismológicas que reportaron el sismo.
+
+### 8. Gap: La brecha entre la cobertura de diferentes estaciones sismológicas.
+
+### 9. Dmin: Distancia mínima al epicentro del terremoto para la estación más cercana.
+
+### 10. Rms: Media cuadrática del espectro de amplitud del terremoto.
+
+### 11. Net: Red que reporta el terremoto.
+
+## 12. Id: Identificador único del evento sísmico.
+
+### 13. Updated: Marca de tiempo que indica cuándo se actualizó por última vez la información del terremoto.
+
+### 14. Place: Descripción del lugar del terremoto.
+
+### 15. Type: Tipo de evento sísmico (p. ej., terremoto).
+
+### 16. HorizontalError: Error horizontal en la determinación de la ubicación.
+
+### 17. DepthError: Error en la determinación de la profundidad.
+
+### 18. MagError: Error en la determinación de la magnitud.
+
+### 19. MagNst: Número de estaciones sísmicas utilizadas para calcular la magnitud.
+
+### 20. Status: Estado del evento sísmico (p. ej., revisado).
+
+### 21. LocationSource: Fuente que informa la ubicación del terremoto.
+
+### 22. MagSource: Fuente que informa la magnitud del terremoto.
+
+## Solo con mirar la metadata, es posible observar que hay algunas variables que explican lo mismo, por ejemplo las variables "LocationSource", "Place", "Latitude", "Longitude", hablan sobre el lugar donde ocurrio el sismo, por lo que solo seria suficiente con utilizar la variable "Place". Además, al mirar las variables "MagSource" y "LocationSource" se puede inferir que hace referencia a la nacion donde ocurrio el sismo, por lo que las variables tampoco serán tomadas en cuenta.
+
+#Desarrollo 
+# A. Objetivo general del estudio: 
+## Identificar la relación entre la profunidad y la magnitud de los sismos.
+
+# B. Hipotesis:
+## Hipotesis 1
+### H0: La magnitud de los sismos aumenta mientras más profundo es el sismo. 
+### H1: La magnitud de los sismos no aumenta mientras más profundo es el sismo.
+
+## Hipotesis 2
+### H0: La magnitud de los sismos es no explicada mediante la profundidad de los sismos. 
+### H1: La magnitud de los sismos es explicada mediante la profundidad de los sismos.  
+
+## Hipotesis 3
+### H0:La magnitud del sismo, no tiene relación con la profundidad del sismo. 
+### H1:La magnitud del sismo, tiene relación con la profundidad del sismo.
+
+
+# C. 
+## La base de datos es un data frame que contiene 21 columnas y 26642 filas de las cuales las variables "time", "magType", "net", "id", "update", "place", "type", "status", "locationSource" y "magSource" pertenecen al tipo character. Por otra parte las variables "latitude", "longitude", "depth", "mag", "nst", "gap", "dmin", "rms", "horizontalError", "depthError", "magError" y "magNst" son de tipo numeric. 
+
+```{r}
+str(terremotos)
+colnames(terremotos)
+nrow(terremotos)
+
+```
+### La variable "time" podría considerarse erronea, puesto que se trata de número, sin embargo, a afirmación no es correcta del todo, ya que, se trata de una Fecha muy especifica por lo que no se transforma a otro tipo de variable. 
+### Tampoco es necesario realizar cambios en los tipos de variable.
+
+# D. Datos Nulos
+## Variables con datos nulos
+```{r}
+sum(is.na(terremotos$time))
+sum(is.na(terremotos$latitude))
+sum(is.na(terremotos$longitude))
+sum(is.na(terremotos$depth))
+sum(is.na(terremotos$mag))
+sum(is.na(terremotos$magType))
+sum(is.na(terremotos$nst))
+sum(is.na(terremotos$gap))
+sum(is.na(terremotos$dmin))
+sum(is.na(terremotos$rms))
+sum(is.na(terremotos$net))
+sum(is.na(terremotos$id))
+sum(is.na(terremotos$updated))
+sum(is.na(terremotos$place))
+sum(is.na(terremotos$type))
+sum(is.na(terremotos$horizontalError))
+sum(is.na(terremotos$depthError))
+sum(is.na(terremotos$magError))
+sum(is.na(terremotos$magNst))
+sum(is.na(terremotos$status))
+sum(is.na(terremotos$locationSource))
+sum(is.na(terremotos$magSource))
+
+sum(is.na(terremotos))
+sum(terremotos[is.na(terremotos)== T])
+
+```
+### Como se aprecia, solamente 6 variables tienen datos vacios (na), que en total suman 9496 observaciones. Estas equivalen al X% de la muestra total
+### las variables con observaciones na son "nst" (1415), "gap" (1417), "dmin" (1866), "horizontalError" (1549), "magError" (1672) y "magNst" (1577). 
+
+### calculo de equivalencia de los valores na
+```{r}
+equivalencia_total <- (9496*100)/nrow(terremotos)
+equivalencia_total
+
+nst_equi <- (sum(is.na(terremotos$nst))*100)/length(terremotos$nst)
+nst_equi
+gap_equi <- (sum(is.na(terremotos$gap))*100)/length(terremotos$gap)
+gap_equi
+dmin_equi <- (sum(is.na(terremotos$dmin))*100)/length(terremotos$dmin)
+dmin_equi
+he_equi <- (sum(is.na(terremotos$horizontalError))*100)/length(terremotos$horizontalError)
+he_equi
+mage_equi <- (sum(is.na(terremotos$magError))*100)/length(terremotos$magError)
+mage_equi 
+magn_equi <- (sum(is.na(terremotos$magNst))*100)/length(terremotos$magNst)
+```
+### los datos vacios no superan el 7% en cada variable, de todas maneras se busca la mejor manera para imputar los datos, para ello se realiza el mismo procedimiento 3 veces y luego se analiza cual es el que tiene menor impacto sobre los datos, esto con el fin de no modificar la información con la imputacion a realizar. 
+##summary de la variable sin modificar
+```{r}
+summary(terremotos$nst)
+
+```
+## se reemplaza por mediana 
+```{r}
+terremotos$nst[is.na(terremotos$nst)] <- 30
+```
+
+## nuevo summary con imputación 
+```{r}
+summary(terremotos$nst)
+```
+
+### se carga nuevamente la base y se reemplaza por el promedio 
+```{r}
+terremotos <- read.csv("earthquakes_2023_global.csv")
+terremotos$nst[is.na(terremotos$nst)] <- 42.57
+summary(terremotos$nst)
+```
+
+### al comparar ambas opciones, se opta por reemplazar con la mediana, puesto que es la que genera un impacto menor. Se procede a reemplazar en las variables que tambien tienen datos "na".
+```{r}
+
+terremotos <- read.csv("earthquakes_2023_global.csv")
+terremotos$nst[is.na(terremotos$nst)] <- 30
+
+summary(terremotos$gap)
+summary(terremotos$dmin) 
+summary(terremotos$horizontalError) 
+summary(terremotos$magError) 
+summary(terremotos$magNst) 
+
+```
+## se realiza la imputación
+```{r}
+terremotos$gap[is.na(terremotos$gap)] <- 111
+terremotos$dmin[is.na(terremotos$dmin)] <- 1.579
+terremotos$horizontalError[is.na(terremotos$horizontalError)] <- 7.060
+terremotos$magError[is.na(terremotos$magError)] <- 0.1110
+terremotos$magNst[is.na(terremotos$magNst)] <- 18
+
+```
+## se verifica que no queden NA´s
+```{r}
+sum(is.na(terremotos$time))
+sum(is.na(terremotos$latitude))
+sum(is.na(terremotos$longitude))
+sum(is.na(terremotos$depth))
+sum(is.na(terremotos$mag))
+sum(is.na(terremotos$magType))
+sum(is.na(terremotos$nst))
+sum(is.na(terremotos$gap))
+sum(is.na(terremotos$dmin))
+sum(is.na(terremotos$rms))
+sum(is.na(terremotos$net))
+sum(is.na(terremotos$id))
+sum(is.na(terremotos$updated))
+sum(is.na(terremotos$place))
+sum(is.na(terremotos$type))
+sum(is.na(terremotos$horizontalError))
+sum(is.na(terremotos$depthError))
+sum(is.na(terremotos$magError))
+sum(is.na(terremotos$magNst))
+sum(is.na(terremotos$status))
+sum(is.na(terremotos$locationSource))
+sum(is.na(terremotos$magSource))
+```
+
+# E For Loop
+```{r}
+length(base_respaldo)
+base_respaldo <- terremotos
+for (i in base_respaldo$magType){
+    if (i =="mb"){base_respaldo$mag <- (1.67 * i - 2.0)
+    }else{
+      if (i =="ml"){base_respaldo$mag <-  (1.42 * i + 0.82)
+        
+      }
+    }
+  }
+
+for (i in 1:length(base_respaldo)){
+  if (base_respaldo[i,6]== "mb"){
+    base_respaldo[i,5] <- (base_respaldo[i,5]*1.67)-2
+  }else if (base_respaldo[i,6]== "ml"){
+    base_respaldo[i,5] <- (base_respaldo[i,5]*1.42)+0.82
+    }else if (base_respaldo[i,6]== "mwc"){
+    base_respaldo[i,5] <- (base_respaldo[i,5]*1.1)+0.35
+      }else if (base_respaldo[i,6]== "mwb"){
+      base_respaldo[i,5] <- (base_respaldo[i,5]*1.14)+0.23
+        }else if (base_respaldo[i,6]== "Mi"){
+        base_respaldo[i,5] <- (base_respaldo[i,5]*0.98)+2.67
+          }else if (base_respaldo[i,6]== "ms"){
+          base_respaldo[i,5] <- (2.5 * log10(base_respaldo[i,5]))-1.76
+            }else if (base_respaldo[i,6]== "md"){
+            base_respaldo[i,5] <- (base_respaldo[i,5]*1.74)+0.05
+              }else if (base_respaldo[i,6]== "Mww"){
+              base_respaldo[i,5] <- (base_respaldo[i,5]+(0.23*(base_respaldo[i,5])-6))
+}
+}
+
+```
+#F
+### Lo que acaba de ocurri, fue la unficación de la unidad de medida de la magnitud de los sismos. Esto ocurre mediante un recorrido del elemento "i" en la base de datos a traves de un bucle (loop). El elemento identifica el número de columna para realizar una comparación ("MagType"). Esta comparación busca la unidad de medida especifica. Si la comparación coincide, entonces, realiza una operación matematica en la misma posicion pero en la variable "mag". El resultado de este bucle es que la magnitud de los terremotos ahora se mide con el tipo de magnitud "Mw".
+
+#G 
+```{r}
+profundidad <- base_respaldo$depth
+magnitud <- base_respaldo$mag
+
+modelo <- lm (profundidad ~ magnitud)
+summary(modelo)
+
+```
+## Significancia
+### El modelo lineal corrido para las variables, indica que la variable no profundidad no explica la magnitud del terremoto con pvalue (2.2e-16).
+
+##coefinciente de correlación
+```{r}
+sqrt(0.02235 )
+```
+### como se menciono anteriormente, el porcentaje en que explica la profundidad del terremoto la magnitud del mismo, es muy baja. 
+
+#G
+```{r}
+distanciaminima <- base_respaldo$dmin
+```
+#H
+### en esta ocacion se intentara explicar la correlación entre la distancia minima al epicentro y la magnitud del terremoto
+```{r}
+modelo2 <- lm(distanciaminima ~ magnitud)
+summary(modelo2)
+```
+### en esta ocacion, tampoco es posible afirmar que la distancia minima del epicentro a la estación más cercana tiene influencia sobre la magnitud del sismo.
+### Esto debido a que el pvalue no es significativo (2.2e-16) y el coeficiente de correlación (0.3352611) nos indica que la variable no tiene relevancia para el estudio. 
+
+
+#I
+##Conclusiones
+### ES posible afirmar mediante lo anteriormente comentado que la magnitud de los sismos no puede ser explicada mediante la profundidad de los mismos. 
+## Hipotesis 1: Mediante la información vista en el punto "G", no es posible afirmar que la magnitud de los sismos aumenta mientras más profundo es el sismo, rechazando así la H0.
+## Hipotesis 2: Mediante la información vista en el punto "G", es posible afirmar que la magnitud de los sismos no explicada mediante la profundidad de los sismos, por lo que no se rechaza la hipotesis nula.
+## Hipotesis 3: De acuerdo con la información vista anteriormente, es posible afirmar que la magnitud del sismo, no tiene relación con la profundidad del mismo, no rechazando asi, la hipotesis nula.
+
+
